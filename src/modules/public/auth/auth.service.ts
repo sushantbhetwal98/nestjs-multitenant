@@ -218,7 +218,7 @@ export class AuthService {
 
       const { password, passwordSalt, otp, ...userInfo } = existingUser;
 
-      return { user: userInfo, ...tokens };
+      return { user: userInfo, tokens };
     } catch (error) {
       if (error instanceof HttpException) throw error;
       console.error(error);

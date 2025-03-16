@@ -23,7 +23,7 @@ export class UserController {
     const { password, passwordSalt, otp, otpExpiry, ...data } =
       await this.userService.getUserByEmail(email);
     return {
-      data,
+      ...data,
       message: 'User fetched successfully.',
     };
   }
@@ -31,7 +31,7 @@ export class UserController {
   @Get('/me')
   getMyProfile(@GetUser() user: UserInfoInterface) {
     return {
-      data: user,
+      ...user,
       message: 'Profile Fetched successfully',
     };
   }
@@ -41,7 +41,7 @@ export class UserController {
     const { password, passwordSalt, otp, otpExpiry, ...data } =
       await this.userService.getUserById(userId);
     return {
-      data,
+      ...data,
       message: 'User fetched successfully.',
     };
   }
@@ -51,9 +51,8 @@ export class UserController {
     @Param('userId') userId: string,
     @Body() updateUserPayload: UpdateUserDto,
   ) {
-    const data = await this.userService.updateUser(userId, updateUserPayload);
     return {
-      data,
+      data: await this.userService.updateUser(userId, updateUserPayload),
       message: 'User updated successfully.',
     };
   }

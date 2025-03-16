@@ -24,9 +24,8 @@ export class AuthController {
 
   @Post('/register')
   async registerUser(@Body() registerUserPayload: RegisterUserDto) {
-    const data = await this.authService.createUser(registerUserPayload);
     return {
-      data,
+      data: await this.authService.createUser(registerUserPayload),
       message: 'User Registered Successfully.',
     };
   }
@@ -51,18 +50,16 @@ export class AuthController {
 
   @Post('/login')
   async login(@Body() credentialsPayload: LoginDto) {
-    const data = await this.authService.login(credentialsPayload);
     return {
-      data,
+      ...(await this.authService.login(credentialsPayload)),
       message: 'Login Successful',
     };
   }
 
   @Post('/forget-password')
   async forgetPassword(@Body() resetPasswordPayload: ForgetPasswordDto) {
-    const data = await this.authService.forgetPassword(resetPasswordPayload);
     return {
-      data,
+      data: await this.authService.forgetPassword(resetPasswordPayload),
       message: 'Reset instruction send to the email',
     };
   }
@@ -72,12 +69,11 @@ export class AuthController {
     @Body() resetPasswordPayload: ResetPasswordDto,
     @Param('resetToken') resetToken: string,
   ) {
-    const data = await this.authService.resetPassword(
-      resetPasswordPayload,
-      resetToken,
-    );
     return {
-      data,
+      data: await this.authService.resetPassword(
+        resetPasswordPayload,
+        resetToken,
+      ),
       message: 'Password reset successfully.',
     };
   }
@@ -88,12 +84,8 @@ export class AuthController {
     @Body() changePasswordPayload: ChangePasswordDto,
     @GetUserDetail() user: UserInterface,
   ) {
-    const data = await this.authService.changePassword(
-      changePasswordPayload,
-      user,
-    );
     return {
-      data,
+      data: await this.authService.changePassword(changePasswordPayload, user),
       message: 'Password changed successfully',
     };
   }
