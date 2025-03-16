@@ -13,15 +13,18 @@ import globalConfig from 'config/global.config';
 import * as crypto from 'crypto';
 import { DataSource } from 'typeorm';
 import { EmailService } from '../../external-services/email/email.service';
+import { RolesInterface } from '../role/interface/role.interface';
+import { UserWorkspaceRelationService } from '../user-workspace-relation/userWorkspaceRelation.service';
 import { User } from '../user/entity/user.entity';
+import { UserInterface } from '../user/interface/user.interface';
 import { UserService } from '../user/user.service';
+import { WorkspaceInterface } from '../workspace/interface/workspace.interface';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgetPasswordDto } from './dto/forgetPassword.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterUserDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/resetPassword.dto';
 import { VerifyUserDto } from './dto/verifyUser.dto';
-import { UserInterface } from '../user/interface/user.interface';
 
 @Injectable()
 export class AuthService {
@@ -30,6 +33,7 @@ export class AuthService {
     private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
+    private readonly userWorkspaceRelationService: UserWorkspaceRelationService,
   ) {}
 
   private hashValue(value: string, defaultsalt?: string) {
@@ -45,16 +49,45 @@ export class AuthService {
     };
   }
 
-  private async createTokens(user: UserInterface) {
-    const accessToken = this.jwtService.sign(
-      { id: user.id, email: user.email },
-      {
-        secret: globalConfig().AUTH.JWT_ACCESS_TOKEN_SECRET,
-        expiresIn: globalConfig().AUTH.ACCESS_TOKEN_EXPIRY,
-      },
-    );
+  private async createTokens(
+    user: UserInterface,
+    otherDetails: {
+      isCompanyLogin: boolean;
+      workspace?: WorkspaceInterface;
+      role?: RolesInterface;
+    },
+  ) {
+    if (
+      otherDetails.isCompanyLogin &&
+      (!otherDetails.workspace || !otherDetails.role)
+    ) {
+      throw new BadRequestException(
+        'You Cannot login to company without company approval',
+      );
+    }
+
+    const accessTokenPayload: any = {
+      id: user.id,
+      email: user.email,
+    };
+
+    if (otherDetails.isCompanyLogin) {
+      (accessTokenPayload.workspaceId = otherDetails.workspace.id),
+        (accessTokenPayload.roleId = otherDetails.role.id),
+        (accessTokenPayload.permissions = otherDetails.role.permissions);
+    }
+
+    const accessToken = this.jwtService.sign(accessTokenPayload, {
+      secret: globalConfig().AUTH.JWT_ACCESS_TOKEN_SECRET,
+      expiresIn: globalConfig().AUTH.ACCESS_TOKEN_EXPIRY,
+    });
     const refreshToken = this.jwtService.sign(
-      { id: user.id },
+      {
+        id: user.id,
+        workspaceId: otherDetails.isCompanyLogin
+          ? otherDetails.workspace.id
+          : null,
+      },
       {
         secret: globalConfig().AUTH.JWT_REFRESH_TOKEN_SECRET,
         expiresIn: globalConfig().AUTH.REFRESH_TOKEN_EXPIRY,
@@ -214,7 +247,9 @@ export class AuthService {
       if (!existingUser.isActive) {
         throw new ForbiddenException('User not verified');
       }
-      const tokens = await this.createTokens(existingUser);
+      const tokens = await this.createTokens(existingUser, {
+        isCompanyLogin: false,
+      });
 
       const { password, passwordSalt, otp, ...userInfo } = existingUser;
 
@@ -222,6 +257,26 @@ export class AuthService {
     } catch (error) {
       if (error instanceof HttpException) throw error;
       console.error(error);
+      throw error;
+    }
+  }
+
+  async loginToCompany(userId: string, workspaceId: string) {
+    try {
+      const userWorkspaceRelation =
+        await this.userWorkspaceRelationService.getUserWorkspaceRelation(
+          userId,
+          workspaceId,
+        );
+
+      const tokens = await this.createTokens(userWorkspaceRelation.user, {
+        isCompanyLogin: true,
+        workspace: userWorkspaceRelation.workspace,
+        role: userWorkspaceRelation.role,
+      });
+
+      return tokens;
+    } catch (error) {
       throw error;
     }
   }

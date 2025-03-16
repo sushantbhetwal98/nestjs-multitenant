@@ -2,9 +2,10 @@
   "defaultRoles": [
     {
       "name": "Administrator",
+      "isMutable": false,
       "permissions": [
         {
-          "resuurce": "role",
+          "resource": "role",
           "actions": ["create", "read", "update", "delete", "archive"]
         }
       ]

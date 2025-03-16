@@ -3,7 +3,7 @@ import {
   Column,
   Entity,
   JoinColumn,
-  OneToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Role } from './role.entity';
@@ -13,7 +13,7 @@ export class Permission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @OneToMany(() => Role, (role) => role.permissions, {
+  @ManyToOne(() => Role, (role) => role.permissions, {
     nullable: false,
     onDelete: 'CASCADE',
   })
@@ -23,6 +23,6 @@ export class Permission {
   @Column({ type: 'enum', enum: RESOURCES, nullable: false })
   resource: string;
 
-  @Column({ type: 'enum', enum: RESOURCE_ACTIONS, nullable: true })
+  @Column({ type: 'enum', array: true, enum: RESOURCE_ACTIONS, nullable: true })
   actions: string[];
 }

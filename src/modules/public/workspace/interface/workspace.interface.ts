@@ -5,7 +5,7 @@ export interface WorkspaceInterface {
   name: string;
   owner?: UserInterface;
   isActive: boolean;
-  isArchiver: boolean;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
