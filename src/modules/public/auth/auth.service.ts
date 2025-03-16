@@ -25,6 +25,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterUserDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/resetPassword.dto';
 import { VerifyUserDto } from './dto/verifyUser.dto';
+import { UserInfoInterface } from '../user/interface/userInfo.interface';
 
 @Injectable()
 export class AuthService {
@@ -51,16 +52,10 @@ export class AuthService {
 
   private async createTokens(
     user: UserInterface,
-    otherDetails: {
-      isCompanyLogin: boolean;
-      workspace?: WorkspaceInterface;
-      role?: RolesInterface;
-    },
+    isCompanyLogin: boolean,
+    workspace?: WorkspaceInterface,
   ) {
-    if (
-      otherDetails.isCompanyLogin &&
-      (!otherDetails.workspace || !otherDetails.role)
-    ) {
+    if (isCompanyLogin && !workspace) {
       throw new BadRequestException(
         'You Cannot login to company without company approval',
       );
@@ -71,10 +66,8 @@ export class AuthService {
       email: user.email,
     };
 
-    if (otherDetails.isCompanyLogin) {
-      (accessTokenPayload.workspaceId = otherDetails.workspace.id),
-        (accessTokenPayload.roleId = otherDetails.role.id),
-        (accessTokenPayload.permissions = otherDetails.role.permissions);
+    if (isCompanyLogin) {
+      accessTokenPayload.workspaceId = workspace.id;
     }
 
     const accessToken = this.jwtService.sign(accessTokenPayload, {
@@ -84,9 +77,7 @@ export class AuthService {
     const refreshToken = this.jwtService.sign(
       {
         id: user.id,
-        workspaceId: otherDetails.isCompanyLogin
-          ? otherDetails.workspace.id
-          : null,
+        workspaceId: isCompanyLogin ? workspace.id : null,
       },
       {
         secret: globalConfig().AUTH.JWT_REFRESH_TOKEN_SECRET,
@@ -247,9 +238,7 @@ export class AuthService {
       if (!existingUser.isActive) {
         throw new ForbiddenException('User not verified');
       }
-      const tokens = await this.createTokens(existingUser, {
-        isCompanyLogin: false,
-      });
+      const tokens = await this.createTokens(existingUser, false);
 
       const { password, passwordSalt, otp, ...userInfo } = existingUser;
 
@@ -261,7 +250,7 @@ export class AuthService {
     }
   }
 
-  async loginToCompany(userId: string, workspaceId: string) {
+  async loginToWorkspace(userId: string, workspaceId: string) {
     try {
       const userWorkspaceRelation =
         await this.userWorkspaceRelationService.getUserWorkspaceRelation(
@@ -269,11 +258,11 @@ export class AuthService {
           workspaceId,
         );
 
-      const tokens = await this.createTokens(userWorkspaceRelation.user, {
-        isCompanyLogin: true,
-        workspace: userWorkspaceRelation.workspace,
-        role: userWorkspaceRelation.role,
-      });
+      const tokens = await this.createTokens(
+        userWorkspaceRelation.user,
+        true,
+        userWorkspaceRelation.workspace,
+      );
 
       return tokens;
     } catch (error) {
@@ -372,5 +361,9 @@ export class AuthService {
       console.error(error);
       throw error;
     }
+  }
+
+  async refresh(user: UserInterface, workspace: WorkspaceInterface | null) {
+    return this.createTokens(user, Boolean(workspace), workspace);
   }
 }

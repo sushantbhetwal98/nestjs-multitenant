@@ -17,6 +17,11 @@ import { RegisterUserDto } from './dto/register.dto';
 import { ResendOtpDto } from './dto/resendOtp.dto';
 import { ResetPasswordDto } from './dto/resetPassword.dto';
 import { VerifyUserDto } from './dto/verifyUser.dto';
+import { GetUser } from 'common/decorator/getUser.decorator';
+import { UserInfoInterface } from '../user/interface/userInfo.interface';
+import { RefreshGuard } from 'common/guards/refresh.guard';
+import { GetWorkpsace } from 'common/decorator/getWorkspace.decorator';
+import { WorkspaceInterface } from '../workspace/interface/workspace.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -56,6 +61,18 @@ export class AuthController {
     };
   }
 
+  @UseGuards(AuthGuard)
+  @Post('/workspace-login/:workspaceId')
+  async loginToWorkspace(
+    @GetUser() user: UserInfoInterface,
+    @Param('workspaceId') workspaceId: string,
+  ) {
+    return {
+      ...(await this.authService.loginToWorkspace(user.id, workspaceId)),
+      message: 'Login To workspace Successful',
+    };
+  }
+
   @Post('/forget-password')
   async forgetPassword(@Body() resetPasswordPayload: ForgetPasswordDto) {
     return {
@@ -87,6 +104,18 @@ export class AuthController {
     return {
       data: await this.authService.changePassword(changePasswordPayload, user),
       message: 'Password changed successfully',
+    };
+  }
+
+  @UseGuards(RefreshGuard)
+  @Post('/refresh')
+  async refresh(
+    @GetUserDetail() user: UserInterface,
+    @GetWorkpsace() workspace: WorkspaceInterface | null,
+  ) {
+    return {
+      ...(await this.authService.refresh(user, workspace)),
+      message: 'Token refreshed successfully.',
     };
   }
 }

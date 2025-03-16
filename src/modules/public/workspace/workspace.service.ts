@@ -1,16 +1,12 @@
-import {
-  BadGatewayException,
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Workspace } from './entity/workspace.entity';
-import { CreateWorkspaceDto } from './dto/workspace.dto';
-import { UserInfoInterface } from '../user/interface/userInfo.interface';
 import defaultRoles from '../../../../common/data/defaultRoles.json';
-import { UserWorkspaceRelationService } from '../user-workspace-relation/userWorkspaceRelation.service';
 import { AuthService } from '../auth/auth.service';
+import { UserWorkspaceRelationService } from '../user-workspace-relation/userWorkspaceRelation.service';
+import { UserInfoInterface } from '../user/interface/userInfo.interface';
+import { CreateWorkspaceDto } from './dto/workspace.dto';
+import { Workspace } from './entity/workspace.entity';
 
 @Injectable()
 export class WorkspaceService {
@@ -59,7 +55,7 @@ export class WorkspaceService {
     } finally {
       await queryRunner.release();
     }
-    const token = await this.authService.loginToCompany(
+    const token = await this.authService.loginToWorkspace(
       user.id,
       savedWorkspace.id,
     );
