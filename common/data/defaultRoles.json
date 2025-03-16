@@ -1,0 +1,22 @@
+{
+  "defaultRoles": [
+    {
+      "name": "Administrator",
+      "permissions": [
+        {
+          "resuurce": "role",
+          "actions": ["create", "read", "update", "delete", "archive"]
+        }
+      ]
+    },
+    {
+      "name": "Normal User",
+      "permissions": [
+        {
+          "resource": "role",
+          "actions": ["read"]
+        }
+      ]
+    }
+  ]
+}
